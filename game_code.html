@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Platformer Game</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #87CEEB;
+        }
+        canvas {
+            display: block;
+        }
+        .touch-controls {
+            position: absolute;
+            bottom: 20px;
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+        }
+        .touch-button {
+            width: 60px;
+            height: 60px;
+            background-color: rgba(0, 0, 0, 0.5);
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            font-size: 24px;
+            user-select: none;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="gameCanvas"></canvas>
+    <div class="touch-controls">
+        <div id="left" class="touch-button">←</div>
+        <div id="jump" class="touch-button">↑</div>
+        <div id="right" class="touch-button">→</div>
+    </div>
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // Set canvas dimensions
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        // Game variables
+        const gravity = 0.5;
+        let isGameOver = false;
+
+        // Player object
+        const player = {
+            x: 100,
+            y: canvas.height - 150,
+            width: 50,
+            height: 50,
+            color: 'red',
+            dx: 0,
+            dy: 0,
+            jumpPower: -12,
+            isJumping: false
+        };
+
+        // Obstacle array
+        const obstacles = [];
+
+        // Key state
+        const keys = {
+            left: false,
+            right: false,
+            jump: false
+        };
+
+        // Spawn obstacles
+        function spawnObstacle() {
+            const size = Math.random() * 50 + 30;
+            obstacles.push({
+                x: canvas.width,
+                y: canvas.height - size,
+                width: size,
+                height: size,
+                color: 'green',
+                speed: 5
+            });
+        }
+        setInterval(spawnObstacle, 2000);
+
+        // Event listeners for keyboard controls
+        window.addEventListener('keydown', (e) => {
+            if (e.code === 'ArrowLeft') keys.left = true;
+            if (e.code === 'ArrowRight') keys.right = true;
+            if (e.code === 'Space' && !player.isJumping) {
+                player.isJumping = true;
+                player.dy = player.jumpPower;
+            }
+        });
+
+        window.addEventListener('keyup', (e) => {
+            if (e.code === 'ArrowLeft') keys.left = false;
+            if (e.code === 'ArrowRight') keys.right = false;
+        });
+
+        // Touch controls
+        document.getElementById('left').addEventListener('touchstart', () => keys.left = true);
+        document.getElementById('left').addEventListener('touchend', () => keys.left = false);
+
+        document.getElementById('right').addEventListener('touchstart', () => keys.right = true);
+        document.getElementById('right').addEventListener('touchend', () => keys.right = false);
+
+        document.getElementById('jump').addEventListener('touchstart', () => {
+            if (!player.isJumping) {
+                player.isJumping = true;
+                player.dy = player.jumpPower;
+            }
+        });
+
+        // Collision detection
+        function isColliding(rect1, rect2) {
+            return (
+                rect1.x < rect2.x + rect2.width &&
+                rect1.x + rect1.width > rect2.x &&
+                rect1.y < rect2.y + rect2.height &&
+                rect1.y + rect1.height > rect2.y
+            );
+        }
+
+        // Game loop
+        function update() {
+            if (isGameOver) return;
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Update player
+            if (keys.left) player.dx = -5;
+            else if (keys.right) player.dx = 5;
+            else player.dx = 0;
+
+            player.x += player.dx;
+            player.dy += gravity;
+            player.y += player.dy;
+
+            // Prevent player from falling off the screen
+            if (player.y + player.height >= canvas.height) {
+                player.y = canvas.height - player.height;
+                player.isJumping = false;
+                player.dy = 0;
+            }
+
+            // Draw player
+            ctx.fillStyle = player.color;
+            ctx.fillRect(player.x, player.y, player.width, player.height);
+
+            // Update and draw obstacles
+            for (let i = obstacles.length - 1; i >= 0; i--) {
+                const obstacle = obstacles[i];
+                obstacle.x -= obstacle.speed;
+
+                // Remove off-screen obstacles
+                if (obstacle.x + obstacle.width < 0) {
+                    obstacles.splice(i, 1);
+                }
+
+                // Check collision
+                if (isColliding(player, obstacle)) {
+                    isGameOver = true;
+                    alert('Game Over! Refresh to play again.');
+                }
+
+                // Draw obstacle
+                ctx.fillStyle = obstacle.color;
+                ctx.fillRect(obstacle.x, obstacle.y, obstacle.width, obstacle.height);
+            }
+
+            // Loop the game
+            requestAnimationFrame(update);
+        }
+
+        update();
+    </script>
+</body>
+</html>
